@@ -3,8 +3,7 @@ import { z } from "zod";
 import { KB_VERSION, UPGRADE_URL } from "@/lib/version";
 import { scanForPhi, phiRejection } from "@/lib/phi-guard";
 import {
-  buildQuery,
-  searchPubmed,
+  searchPubmedWithFallback,
   similarity,
   tokenize,
   type PubmedArticle,
@@ -54,8 +53,8 @@ export function registerNoveltyCheck(server: McpServer) {
       }
 
       const { pico, keywords, known_pmids } = args;
-      const query = buildQuery(pico, keywords);
-      const search = await searchPubmed(query);
+      const search = await searchPubmedWithFallback(pico, keywords);
+      const query = search.queryUsed;
 
       if (!search.ok) {
         // NFR-2: upstream failure is a normal result, not a hard error.

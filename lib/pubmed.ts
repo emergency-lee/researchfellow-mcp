@@ -62,6 +62,47 @@ export function buildQuery(
   return term;
 }
 
+/**
+ * Relaxed fallback: exact-phrase AND queries often return 0 on PubMed
+ * (e.g. "adult sepsis patients"). Strip generic clinical stopwords and
+ * AND-join the remaining significant tokens instead.
+ */
+const GENERIC_TOKENS = new Set([
+  "adult", "adults", "patient", "patients", "use", "user", "users", "using",
+  "treatment", "therapy", "day", "days", "rate", "risk", "study", "outcome",
+  "outcomes", "effect", "effects", "impact", "association", "with", "without",
+  "and", "or", "of", "in", "the", "a", "an",
+]);
+
+export function buildRelaxedQuery(
+  pico: { population: string; exposure: string; comparator?: string; outcome: string },
+  keywords?: string[],
+): string {
+  const tokens = new Set<string>();
+  const fields = [pico.population, pico.exposure, pico.comparator, pico.outcome, ...(keywords ?? [])];
+  for (const f of fields) {
+    if (!f) continue;
+    for (const raw of f.toLowerCase().split(/[^a-z0-9가-힣-]+/)) {
+      const t = raw.replace(/^\d+-?/, "").trim(); // "28-day" -> "day" -> dropped
+      if (t.length >= 3 && !GENERIC_TOKENS.has(t)) tokens.add(t);
+    }
+  }
+  return [...tokens].join(" AND ");
+}
+
+/** Strict phrase query first; if it yields nothing, retry relaxed. */
+export async function searchPubmedWithFallback(
+  pico: { population: string; exposure: string; comparator?: string; outcome: string },
+  keywords?: string[],
+): Promise<PubmedResult & { relaxed: boolean }> {
+  const strict = await searchPubmed(buildQuery(pico, keywords));
+  if (!strict.ok || strict.articles.length > 0) return { ...strict, relaxed: false };
+  const relaxedTerm = buildRelaxedQuery(pico, keywords);
+  if (!relaxedTerm) return { ...strict, relaxed: false };
+  const relaxed = await searchPubmed(relaxedTerm);
+  return { ...relaxed, relaxed: true };
+}
+
 function toStr(v: unknown): string | null {
   return typeof v === "string" && v.trim() ? v.trim() : null;
 }
