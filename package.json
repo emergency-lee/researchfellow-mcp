@@ -1,0 +1,25 @@
+{
+  "name": "researchfellow-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ResearchFellow MCP — paid remote tier (Brain/Watch/Seal). P1: server skeleton + entitlement + novelty_check.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "mcp-handler": "^1.0.2",
+    "next": "^16.2.10",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "typescript": "^5.7.0"
+  }
+}
