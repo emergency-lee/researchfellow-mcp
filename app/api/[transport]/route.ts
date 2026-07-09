@@ -5,12 +5,14 @@ import { SERVER_VERSION } from "@/lib/version";
 import { registerPing } from "@/lib/tools/ping";
 import { registerEntitlementStatus } from "@/lib/tools/entitlement-status";
 import { registerNoveltyCheck } from "@/lib/tools/novelty-check";
+import { registerMethodologyAdvisor } from "@/lib/tools/methodology-advisor";
 
 const handler = createMcpHandler(
   (server) => {
     registerPing(server);
     registerEntitlementStatus(server);
     registerNoveltyCheck(server);
+    registerMethodologyAdvisor(server);
   },
   {
     serverInfo: { name: "researchfellow-mcp", version: SERVER_VERSION },
