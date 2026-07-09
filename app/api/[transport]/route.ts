@@ -10,6 +10,7 @@ import { registerJournalFit } from "@/lib/tools/journal-fit";
 import { registerChecklistMap } from "@/lib/tools/checklist-review";
 import { registerIntegrityReport } from "@/lib/tools/integrity-report";
 import { registerVerifyReport } from "@/lib/tools/verify-report";
+import { registerReviewerPlaybook } from "@/lib/tools/reviewer-playbook";
 
 const handler = createMcpHandler(
   (server) => {
@@ -21,6 +22,7 @@ const handler = createMcpHandler(
     registerChecklistMap(server);
     registerIntegrityReport(server);
     registerVerifyReport(server);
+    registerReviewerPlaybook(server);
   },
   {
     serverInfo: { name: "researchfellow-mcp", version: SERVER_VERSION },
