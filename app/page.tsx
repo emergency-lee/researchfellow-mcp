@@ -14,7 +14,7 @@ export default function Home() {
         ResearchFellow MCP
       </h1>
       <p style={{ color: "#555" }}>
-        Paid remote tier — Brain / Watch / Seal. This is a machine endpoint.
+        Paid remote tier — Brain / Watch / Integrity. This is a machine endpoint.
       </p>
       <ul style={{ color: "#333", paddingLeft: 18 }}>
         <li>

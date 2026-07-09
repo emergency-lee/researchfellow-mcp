@@ -18,7 +18,7 @@
 |----|---------|
 | PR-1 | MCP Streamable HTTP 서버. Claude Code(`.mcp.json`)와 Claude Desktop connector 양쪽 호환 |
 | PR-2 | 인증: OAuth 2.1 (MCP 표준 플로우) + API 키 병행(헤드리스/CI용) |
-| PR-3 | 티어: Free(티저) / **Per-Study Pass**(연구 1건, 유효기간 내 Brain 전체 + Seal 1회) / Pro(월·연, Pass 무제한 + Watch) / Lab(시트, +팀 gate·감사) |
+| PR-3 | 티어: Free(티저) / **Per-Study Pass**(연구 1건, 유효기간 내 Brain 전체 + 무결성 리포트 1회) / Pro(월·연, Pass 무제한 + Watch) / Lab(시트, +팀 gate·감사) |
 | PR-4 | Pass 미터링: 프로젝트 지문(`.research/` 프로젝트 UUID) 단위로 사용량 귀속. 도구 호출 횟수가 아니라 연구 단위 과금 |
 | PR-5 | 과금·구독 관리는 외부 결제(Stripe 등) 연동, MCP 서버는 entitlement 검증만 담당 |
 | PR-6 | 티저 응답에 업그레이드 안내 필드를 포함하되, 강제 아님 (표시는 플러그인 FR-X3 정책 소관) |
@@ -72,7 +72,7 @@
 | TL-W4 | 발견 카드 스키마: `{type, severity(critical/notable/info), summary, evidence_refs[], suggested_action}` — 플러그인 Insight Feed와 동일 |
 | TL-W5 | 심각도 판정: 동일 가설 기출판 감지 = critical (novelty 붕괴 경보) |
 
-## 4. TL-S — Seal (인증)
+## 4. TL-S — 무결성 인증 (integrity certification)
 
 | ID | 요구사항 |
 |----|---------|

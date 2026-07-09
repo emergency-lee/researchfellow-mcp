@@ -2,7 +2,7 @@
   "name": "researchfellow-mcp",
   "version": "0.1.0",
   "private": true,
-  "description": "ResearchFellow MCP — paid remote tier (Brain/Watch/Seal). P1: server skeleton + entitlement + novelty_check.",
+  "description": "ResearchFellow MCP — paid remote tier (Brain/Watch/Integrity). P1: server skeleton + entitlement + novelty_check.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
