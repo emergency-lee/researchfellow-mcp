@@ -7,6 +7,7 @@ import { registerEntitlementStatus } from "@/lib/tools/entitlement-status";
 import { registerNoveltyCheck } from "@/lib/tools/novelty-check";
 import { registerMethodologyAdvisor } from "@/lib/tools/methodology-advisor";
 import { registerJournalFit } from "@/lib/tools/journal-fit";
+import { registerChecklistMap } from "@/lib/tools/checklist-review";
 
 const handler = createMcpHandler(
   (server) => {
@@ -15,6 +16,7 @@ const handler = createMcpHandler(
     registerNoveltyCheck(server);
     registerMethodologyAdvisor(server);
     registerJournalFit(server);
+    registerChecklistMap(server);
   },
   {
     serverInfo: { name: "researchfellow-mcp", version: SERVER_VERSION },
