@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { KB_VERSION, UPGRADE_URL } from "@/lib/version";
+import { KB_VERSION } from "@/lib/version";
 import { scanForPhi, phiRejection } from "@/lib/phi-guard";
 import { critiqueManuscript, CRITIQUE_VERSION, type CritiqueIssue } from "@/lib/checklist-critique";
 import { entitlementOf, jsonResult, logTool, type ToolExtra } from "@/lib/tools/shared";
@@ -22,7 +22,7 @@ export function registerChecklistMap(server: McpServer) {
         "Deep reporting-guideline critique of a manuscript draft. Beyond the free local coverage screen, " +
         "this flags per-item quality gaps (e.g. an estimate without a CI, a relative effect without an " +
         "absolute one, code definitions without validation, causal language in an observational design) " +
-        "with actionable fixes. Full mode returns the issue list; teaser returns counts by severity. " +
+        "with actionable fixes and the full issue list. " +
         "De-identified manuscript text only (no PHI).",
       inputSchema,
     },
@@ -51,10 +51,6 @@ export function registerChecklistMap(server: McpServer) {
           issue_count: issues.length,
           by_severity: counts,
           note: "the specific issues and suggested fixes are in full mode; the plugin's local checklist_map.py gives free coverage",
-          upgrade: {
-            hint: "Per-Study Pass로 항목별 지적과 수정 제안을 해제하세요.",
-            url: UPGRADE_URL,
-          },
         });
       }
 

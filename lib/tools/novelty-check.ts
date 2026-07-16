@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { KB_VERSION, UPGRADE_URL } from "@/lib/version";
+import { KB_VERSION } from "@/lib/version";
 import { scanForPhi, phiRejection } from "@/lib/phi-guard";
 import {
   searchPubmedWithFallback,
@@ -37,7 +37,7 @@ export function registerNoveltyCheck(server: McpServer) {
       title: "Novelty Check",
       description:
         "Cross-check a study idea (PICO + keywords) against live PubMed for similar prior work. " +
-        "Full mode returns a ranked similar-study list and positioning hints; teaser returns counts only. " +
+        "Returns a ranked similar-study list and positioning hints. " +
         "Accepts de-identified structured input only (no tabular/PHI data).",
       inputSchema,
     },
@@ -106,10 +106,6 @@ export function registerNoveltyCheck(server: McpServer) {
           conflicting_count: null,
           most_recent_year: mostRecentYear,
           note: "conflicting 분석은 direction 인덱스 도입(P2) 후 제공",
-          upgrade: {
-            hint: "Per-Study Pass로 유사 논문 목록·유사도·포지셔닝 제안을 해제하세요.",
-            url: UPGRADE_URL,
-          },
         });
       }
 

@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { KB_VERSION, UPGRADE_URL } from "@/lib/version";
+import { KB_VERSION } from "@/lib/version";
 import { scanForPhi, phiRejection } from "@/lib/phi-guard";
 import { searchPubmedWithFallback, type PubmedArticle } from "@/lib/pubmed";
 import { recommendMethodology, RULES_VERSION } from "@/lib/methodology";
@@ -39,9 +39,9 @@ export function registerMethodologyAdvisor(server: McpServer) {
       title: "Methodology Advisor",
       description:
         "Recommend an analysis method for a retrospective observational study (PICO + design + " +
-        "outcome type + features) and surface PubMed precedent. Full mode returns the method, " +
+        "outcome type + features) and surface PubMed precedent. Returns the method, " +
         "confounding strategy, assumptions, pitfalls, sensitivity menu, reporting-item crosswalk and " +
-        "similar-study examples; teaser returns the headline method + counts. De-identified structured " +
+        "similar-study examples. De-identified structured " +
         "input only (no tabular/PHI data).",
       inputSchema,
     },
@@ -73,10 +73,6 @@ export function registerMethodologyAdvisor(server: McpServer) {
           confounding_strategy: rec.confounding_strategy,
           similar_study_count: similarCount,
           note: "assumptions, pitfalls, sensitivity plan, reporting crosswalk and precedent examples are in full mode",
-          upgrade: {
-            hint: "Per-Study Pass로 가정·함정·민감도 계획·보고항목 크로스워크·선례 목록을 해제하세요.",
-            url: UPGRADE_URL,
-          },
         });
       }
 

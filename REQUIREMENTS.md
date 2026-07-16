@@ -1,16 +1,21 @@
-# ResearchFellow MCP — Requirements v0.1 (2026-07-04)
+# ResearchFellow MCP — Requirements v0.2 (2026-07-16 개정)
 
-> 유료 원격 계층. 비즈니스 자산(갱신형 지식 DB, 상주 감시, 서명 인증)을 제공한다.
-> 설계 근거: `../docs/business-model-mcp-plugin_2026-07-04.md`
+> 원격 강화 계층 + 텔레메트리 수집. **2026-07-16 정책: 전부 무료** — 모든 도구가
+> 모든 호출자에게 full로 응답한다. 유료화는 언급하지 않으며 영구무료도 선언하지
+> 않는다. 티어 구조는 휴면 상태로 보존(재활성화 이음매).
+> 설계 근거: `../docs/business-model-mcp-plugin_2026-07-04.md` (경계 원칙),
+> 2026-07-16 재설계 결정 (전부 무료 + 동의 기반 퍼널 텔레메트리).
 
 ## 0. 원칙
 
 1. **PHI 불수신** — 입력 스키마 자체가 비식별 파생물만 받도록 설계. 방어선 2중:
    스키마 제한(구조적) + 서버측 감지 시 거부·무저장(런타임).
-2. **막지 말고 얕게** — 모든 도구는 미인증에도 응답한다(티저 모드). 차단 대신 깊이 차이.
-3. **티저는 정직하게** — 개수·존재만 알리고 내용을 감추되, 감지 결과 자체는 진실.
-4. **모트는 갱신** — 도구 로직보다 뒤의 DB(문헌 인덱스·룰셋·저널 DB)가 자산.
+2. **전부 무료, 전부 full** — 미인증 포함 모든 호출자가 동일한 full 결과를 받는다.
+   업그레이드 안내·티저 응답은 표시하지 않는다. (teaser 분기는 휴면 코드로 보존)
+3. **모트는 갱신** — 도구 로직보다 뒤의 DB(문헌 인덱스·룰셋·저널 DB)가 자산.
    모든 지식 자산은 버전 태그를 갖고 응답에 명시된다.
+4. **텔레메트리는 퍼널만** — 수집은 단계 번호·이벤트명·버전·익명 토큰뿐. 내용
+   필드는 스키마에 존재 자체가 불가(`.strict()`). §9 참조.
 
 ## 1. 프로토콜 · 인증 · 과금
 
@@ -18,10 +23,10 @@
 |----|---------|
 | PR-1 | MCP Streamable HTTP 서버. Claude Code(`.mcp.json`)와 Claude Desktop connector 양쪽 호환 |
 | PR-2 | 인증: OAuth 2.1 (MCP 표준 플로우) + API 키 병행(헤드리스/CI용) |
-| PR-3 | 티어: Free(티저) / **Per-Study Pass**(연구 1건, 유효기간 내 Brain 전체 + 무결성 리포트 1회) / Pro(월·연, Pass 무제한 + Watch) / Lab(시트, +팀 gate·감사) |
-| PR-4 | Pass 미터링: 프로젝트 지문(`.research/` 프로젝트 UUID) 단위로 사용량 귀속. 도구 호출 횟수가 아니라 연구 단위 과금 |
-| PR-5 | 과금·구독 관리는 외부 결제(Stripe 등) 연동, MCP 서버는 entitlement 검증만 담당 |
-| PR-6 | 티저 응답에 업그레이드 안내 필드를 포함하되, 강제 아님 (표시는 플러그인 FR-X3 정책 소관) |
+| PR-3 | **(2026-07-16 휴면)** 티어 enum(free/pass/pro)은 유지하되 현재 전원 free/full. 과금 티어 정의는 재활성화 시 재검토 |
+| PR-4 | **(휴면)** Pass 미터링 인터페이스는 no-op 보존. 사용 통계는 §9 텔레메트리가 담당 |
+| PR-5 | **(휴면)** 과금 연동 없음. entitlement 검증 구조만 보존 |
+| PR-6 | **(폐지)** 업그레이드 안내 필드는 어떤 응답에도 포함하지 않는다 |
 
 ## 2. TL-B — Brain 도구군 (지식 자산)
 
@@ -110,6 +115,20 @@
 | NFR-2 | 서버 불가용이 플러그인 워크플로우를 차단하지 않음 (클라이언트 degradation은 플러그인 FR-X5) |
 | NFR-3 | 스택: MCP 공식 SDK 기반 (TypeScript `@modelcontextprotocol/sdk` 또는 Python FastMCP — P1 착수 시 결정), 상태 저장은 Postgres, 인덱스는 pgvector로 시작 |
 | NFR-4 | 지역: 초기 단일 리전. PHI를 받지 않으므로 데이터 주권 이슈 최소화되나 PH-4 문서에 명시 |
+
+## 9. TM — 텔레메트리 (2026-07-16 신설)
+
+| ID | 요구사항 |
+|----|---------|
+| TM-1 | 일반 HTTP 라우트 `POST /api/token`(발급, consent:true 필수) / `DELETE /api/token`(철회 — 이벤트 행 삭제 + 토큰 revoked) / `POST /api/events`(배치 ≤50) — MCP 도구가 아님(미연동 유저도 수집되어야 하므로) |
+| TM-2 | 모든 입력 스키마는 zod `.strict()` — 내용을 담을 수 있는 필드가 존재하지 않고, 알 수 없는 필드는 400으로 거부 (PH-1의 구조적 방어를 텔레메트리에 재적용) |
+| TM-3 | 이벤트 8종: project_created / entry_point_selected / step_entered / step_completed / gate_approved / gate_rejected / gate_changes_requested / session_resumed. entry_point 도메인은 S1~S5 (S0 없음 — 재개는 session_resumed + 원래 진입점) |
+| TM-4 | "멈춤"은 이벤트가 아니라 파생 지표 (step_entered 대비 step_completed 결손) |
+| TM-5 | 서버는 sha256(token)만 저장 — 평문 토큰·요청 본문 무저장 (PH-3 정합) |
+| TM-6 | 저장소 Neon Postgres (`migrations/001_telemetry.sql`, env `DATABASE_URL`). 미설정 시 503 — 클라이언트 유예 모드가 흡수 |
+| TM-7 | 레이트리밋: 1차 Vercel WAF per-IP, 2차 인메모리(인스턴스 분할 한계 인지) |
+| TM-8 | 텔레메트리 실패가 플러그인 워크플로우를 절대 차단하지 않는다 (NFR-2 확장) |
+| TM-9 | 공개 프라이버시 고지(`web/privacy.html`, PH-4)에 수집/미수집 항목·철회 절차 명시 |
 
 ## 8. 로드맵
 

@@ -9,7 +9,7 @@ export interface ToolExtra {
   };
 }
 
-/** Read the entitlement resolved at auth time; default to free/teaser (§0-2). */
+/** Read the entitlement resolved at auth time; default is free/full (everything is free). */
 export function entitlementOf(extra: ToolExtra | undefined): Entitlement {
   return extra?.authInfo?.extra?.entitlement ?? resolveEntitlement(null);
 }

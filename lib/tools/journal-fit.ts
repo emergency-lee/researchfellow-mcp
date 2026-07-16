@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { KB_VERSION, UPGRADE_URL } from "@/lib/version";
+import { KB_VERSION } from "@/lib/version";
 import { scanForPhi, phiRejection } from "@/lib/phi-guard";
 import { scoreJournals, abstractDiagnostics, JOURNAL_KB_VERSION } from "@/lib/journals";
 import { entitlementOf, jsonResult, logTool, type ToolExtra } from "@/lib/tools/shared";
@@ -20,9 +20,9 @@ export function registerJournalFit(server: McpServer) {
       title: "Journal Fit",
       description:
         "Score a manuscript (title + abstract + keywords + design) against a curated set of target " +
-        "journals for scope fit, and diagnose abstract format (structured labels, word limit). Full mode " +
-        "returns the ranked candidates + format diagnostics for the best fit; teaser returns the top " +
-        "candidate name only. De-identified manuscript metadata only (no PHI).",
+        "journals for scope fit, and diagnose abstract format (structured labels, word limit). " +
+        "Returns the ranked candidates + format diagnostics for the best fit. " +
+        "De-identified manuscript metadata only (no PHI).",
       inputSchema,
     },
     async (args, extra: ToolExtra) => {
@@ -47,10 +47,6 @@ export function registerJournalFit(server: McpServer) {
           candidate_count: ranked.filter((r) => r.score > 0).length,
           top_candidate: top && top.score > 0 ? top.name : null,
           note: "full ranking, fit scores and abstract format diagnostics are in full mode",
-          upgrade: {
-            hint: "Per-Study Pass로 저널 랭킹·적합 점수·초록 형식 진단을 해제하세요.",
-            url: UPGRADE_URL,
-          },
         });
       }
 

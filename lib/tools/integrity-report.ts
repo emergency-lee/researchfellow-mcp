@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { KB_VERSION, UPGRADE_URL } from "@/lib/version";
+import { KB_VERSION } from "@/lib/version";
 import { scanForPhi, phiRejection } from "@/lib/phi-guard";
 import {
   signReport,
@@ -33,7 +33,7 @@ export function registerIntegrityReport(server: McpServer) {
       description:
         "Issue a signed (ed25519) integrity certificate over a de-identified study manifest " +
         "(project fingerprint, artifact/SAP hashes, gate approvals, audit event count). Anyone can later " +
-        "confirm it with verify_report (free). Full tier only. De-identified hashes/metadata only — never PHI.",
+        "confirm it with verify_report (free). De-identified hashes/metadata only — never PHI.",
       inputSchema,
     },
     async (args, extra: ToolExtra) => {
@@ -51,11 +51,7 @@ export function registerIntegrityReport(server: McpServer) {
         return jsonResult({
           mode: "teaser",
           kb_version: KB_VERSION,
-          note: "Signing an integrity certificate requires a Per-Study Pass. Verification (verify_report) is free for anyone.",
-          upgrade: {
-            hint: "Per-Study Pass로 서명된 무결성 인증서를 발급하세요. 검증은 누구나 무료입니다.",
-            url: UPGRADE_URL,
-          },
+          note: "Signing is unavailable for this connection.",
         });
       }
 

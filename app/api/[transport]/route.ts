@@ -35,17 +35,18 @@ const handler = createMcpHandler(
   },
 );
 
-// PR-2 (API-key path). §0-2 "막지 말고 얕게": `required: false` — unauthenticated
-// callers are NOT rejected; they run in teaser mode. A valid key attaches an
-// AuthInfo whose `extra.entitlement` unlocks full mode. OAuth 2.1 flow is P2.
+// `required: false` — unauthenticated callers are never rejected, and since
+// 2026-07-16 everything resolves to full mode (see lib/entitlement.ts). A
+// recognized key still attaches its entitlement for diagnostics.
 const verifyToken = async (
   _req: Request,
   bearerToken?: string,
 ): Promise<AuthInfo | undefined> => {
-  const ent = resolveEntitlement(bearerToken ? `Bearer ${bearerToken}` : null);
-  if (ent.mode !== "full") return undefined; // -> tools default to free/teaser
+  if (!bearerToken) return undefined; // anonymous -> tools use the free/full default
+  const ent = resolveEntitlement(`Bearer ${bearerToken}`);
+  if (ent.tier === "free") return undefined; // unknown key == anonymous
   return {
-    token: bearerToken!,
+    token: bearerToken,
     scopes: [],
     clientId: "api-key",
     extra: { entitlement: ent },

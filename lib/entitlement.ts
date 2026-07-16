@@ -1,11 +1,10 @@
-// Entitlement resolution (PR-2 API-key path; PR-3 tiers).
+// Entitlement resolution.
 //
-// §0-2 "막지 말고 얕게": an unauthenticated / unknown key is NOT rejected — it is
-// simply resolved to the `free` tier in `teaser` mode. Valid keys unlock `full`.
-//
-// OAuth 2.1 (PR-2 standard flow) is deferred to P2. For P1 we accept a static
-// API key from `Authorization: Bearer <key>`, matched against the comma-separated
-// allowlist in env `RF_API_KEYS`.
+// 2026-07-16 policy: EVERYTHING is free — every caller (authenticated or not)
+// resolves to mode "full". The Tier/Mode/UsageMeter structure is deliberately
+// kept as a dormant seam: if a paid tier ever returns, DEFAULT_ENTITLEMENT is
+// the single point to flip. Valid RF_API_KEYS keys still resolve to the "pass"
+// tier so key-based diagnostics (entitlement_status) keep working.
 
 export type Tier = "free" | "pass" | "pro";
 export type Mode = "teaser" | "full";
@@ -13,11 +12,13 @@ export type Mode = "teaser" | "full";
 export interface Entitlement {
   tier: Tier;
   mode: Mode;
-  /** Pass/Pro expiry. Stubbed to null in P1 (no billing store yet). */
+  /** Tier expiry. Unused while everything is free. */
   expiresAt: string | null;
 }
 
-const FREE_TEASER: Entitlement = { tier: "free", mode: "teaser", expiresAt: null };
+// Single neutralization point — flipping mode here is what "everything free"
+// means; the per-tool teaser branches become unreachable dead code.
+const DEFAULT_ENTITLEMENT: Entitlement = { tier: "free", mode: "full", expiresAt: null };
 
 function validKeys(): Set<string> {
   const raw = process.env.RF_API_KEYS ?? "";
@@ -37,23 +38,19 @@ function extractBearer(authHeader?: string | null): string | undefined {
 
 /**
  * Resolve entitlement from an Authorization header value.
- * Never throws; unknown/absent keys degrade to free/teaser.
- *
- * P1: any valid key maps to `pass`/`full`. Per-key tier lookup (pass vs pro) and
- * expiry come with the billing store (P1.5 / PR-5 Stripe entitlement sync).
+ * Never throws; absent/unknown keys resolve to the free/full default.
  */
 export function resolveEntitlement(authHeader?: string | null): Entitlement {
   const key = extractBearer(authHeader);
   if (key && validKeys().has(key)) {
     return { tier: "pass", mode: "full", expiresAt: null };
   }
-  return FREE_TEASER;
+  return DEFAULT_ENTITLEMENT;
 }
 
 // ---------------------------------------------------------------------------
-// PR-4 Pass metering — project-fingerprint attribution.
-// Interface only for P1; no-op implementation. Usage is attributed per research
-// project (`.research/` UUID), NOT per tool call.
+// Usage metering — dormant interface (kept as the seam for a future paid tier;
+// usage stats live in the telemetry layer instead, see lib/telemetry-store.ts).
 // ---------------------------------------------------------------------------
 export interface UsageMeter {
   /** Record one billable research-unit touch for a project fingerprint. */
@@ -64,10 +61,8 @@ export interface UsageMeter {
   }): Promise<void>;
 }
 
-// TODO(P1.5 Neon): replace with a Postgres-backed meter keyed on project UUID
-// (PR-4). P1 is stateless — no DB/redis — so metering is a no-op here.
 export const usageMeter: UsageMeter = {
   async record() {
-    /* no-op in P1 */
+    /* no-op — dormant */
   },
 };

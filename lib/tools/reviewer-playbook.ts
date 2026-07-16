@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { KB_VERSION, UPGRADE_URL } from "@/lib/version";
+import { KB_VERSION } from "@/lib/version";
 import { scanForPhi, phiRejection } from "@/lib/phi-guard";
 import { anticipateObjections, PLAYBOOK_VERSION } from "@/lib/reviewer-playbook";
 import { entitlementOf, jsonResult, logTool, type ToolExtra } from "@/lib/tools/shared";
@@ -20,7 +20,7 @@ export function registerReviewerPlaybook(server: McpServer) {
         "Anticipate the methodological objections a peer reviewer of an observational study is most likely " +
         "to raise (confounding by indication, immortal time, competing risks, residual confounding, " +
         "multiplicity, Table 1 p-values, generalizability, causal overreach) and draft a response for each. " +
-        "Full mode returns the objections + responses; teaser returns counts by likelihood. De-identified " +
+        "Returns the objections + drafted responses. De-identified " +
         "manuscript text only (no PHI).",
       inputSchema,
     },
@@ -50,10 +50,6 @@ export function registerReviewerPlaybook(server: McpServer) {
           by_likelihood: counts,
           top_topics: objections.slice(0, 3).map((o) => o.topic),
           note: "the full objections + drafted responses are in full mode",
-          upgrade: {
-            hint: "Per-Study Pass로 예상 지적 전문과 대응 초안을 해제하세요.",
-            url: UPGRADE_URL,
-          },
         });
       }
 

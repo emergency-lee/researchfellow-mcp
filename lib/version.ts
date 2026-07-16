@@ -4,5 +4,3 @@ export const SERVER_VERSION = "0.1.0-p1";
 // P1 has no curated embedding index (KB-1 deferred to P1.5). novelty_check runs
 // against live PubMed only — state that honestly in responses (KB-6).
 export const KB_VERSION = "p1-live-pubmed";
-
-export const UPGRADE_URL = "https://researchfellow.vercel.app/#pricing";
