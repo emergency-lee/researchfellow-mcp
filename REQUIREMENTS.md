@@ -116,7 +116,7 @@
 | NFR-3 | 스택: MCP 공식 SDK 기반 (TypeScript `@modelcontextprotocol/sdk` 또는 Python FastMCP — P1 착수 시 결정), 상태 저장은 Postgres, 인덱스는 pgvector로 시작 |
 | NFR-4 | 지역: 초기 단일 리전. PHI를 받지 않으므로 데이터 주권 이슈 최소화되나 PH-4 문서에 명시 |
 
-## 9. TM — 텔레메트리 (2026-07-16 신설)
+## 8. TM — 텔레메트리 (2026-07-16 신설)
 
 | ID | 요구사항 |
 |----|---------|
@@ -130,10 +130,10 @@
 | TM-8 | 텔레메트리 실패가 플러그인 워크플로우를 절대 차단하지 않는다 (NFR-2 확장) |
 | TM-9 | 공개 프라이버시 고지(`web/privacy.html`, PH-4)에 수집/미수집 항목·철회 절차 명시 |
 
-## 8. 로드맵
+## 9. 로드맵
 
 | 순위 | 범위 |
 |------|------|
-| P1 | 서버 골격 + 인증/entitlement + `novelty_check` (teaser/full) + KB-1 초기 구축 |
-| P2 | `methodology_advisor`, `checklist_map`, `integrity_report`+`verify_report` |
-| P3 | `journal_fit`, `reviewer_playbook`, Watch 크론, Lab 티어 |
+| ~~P1~~ | ~~서버 골격 + 인증/entitlement + novelty_check~~ (완료) |
+| P2 | KB 갱신 파이프라인(저널 DB 확장·크론), OAuth 2.1, KB-1 임베딩 인덱스, `package_validate` |
+| P3 | Watch 크론 + `watch_poll` |
