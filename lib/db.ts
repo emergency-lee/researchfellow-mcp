@@ -12,7 +12,9 @@ export class TelemetryNotConfiguredError extends Error {
 let cached: NeonQueryFunction<false, false> | null = null;
 
 export function getSql(): NeonQueryFunction<false, false> {
-  const url = process.env.DATABASE_URL;
+  // The Vercel Neon marketplace integration injects POSTGRES_URL (and
+  // DATABASE_URL in some environments) — accept either.
+  const url = process.env.DATABASE_URL || process.env.POSTGRES_URL;
   if (!url) throw new TelemetryNotConfiguredError();
   if (!cached) cached = neon(url);
   return cached;
