@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",
+    "@neondatabase/serverless": "^1.1.0",
     "mcp-handler": "^1.0.2",
     "next": "^16.2.10",
     "react": "^19.2.7",
