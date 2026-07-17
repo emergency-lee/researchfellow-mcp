@@ -1,6 +1,8 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
+import { NextResponse } from "next/server";
 import { resolveEntitlement } from "@/lib/entitlement";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { SERVER_VERSION } from "@/lib/version";
 import { registerPing } from "@/lib/tools/ping";
 import { registerEntitlementStatus } from "@/lib/tools/entitlement-status";
@@ -55,4 +57,29 @@ const verifyToken = async (
 
 const authHandler = withMcpAuth(handler, verifyToken, { required: false });
 
-export { authHandler as GET, authHandler as POST, authHandler as DELETE };
+// Prefer Vercel-set x-real-ip; fall back to x-forwarded-for leftmost hop.
+function clientIp(req: Request): string {
+  const realIp = req.headers.get("x-real-ip")?.trim();
+  if (realIp) return realIp;
+  return (req.headers.get("x-forwarded-for") ?? "unknown").split(",")[0].trim();
+}
+
+// In-memory rate-limit buckets are per serverless instance (see lib/rate-limit.ts
+// header). Effective global capacity is (limit × instance count). This is a
+// SECOND line of defence only — real edge defence is Vercel WAF / ops config
+// outside this repo, not the in-process Map.
+// 60/min matches events; tool path is the main abuse surface for unauth calls.
+const MCP_RATE = { max: 60, windowMs: 60_000 } as const;
+const MCP_RETRY_AFTER_SEC = String(MCP_RATE.windowMs / 1000);
+
+async function rateLimitedHandler(req: Request): Promise<Response> {
+  if (!checkRateLimit(`mcp:${clientIp(req)}`, MCP_RATE)) {
+    return NextResponse.json(
+      { error: "rate_limited" },
+      { status: 429, headers: { "Retry-After": MCP_RETRY_AFTER_SEC } },
+    );
+  }
+  return authHandler(req);
+}
+
+export { rateLimitedHandler as GET, rateLimitedHandler as POST, rateLimitedHandler as DELETE };

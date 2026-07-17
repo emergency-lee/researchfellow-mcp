@@ -1,7 +1,10 @@
-// Integrity certification: sign a de-identified study manifest and verify it.
-// Trust comes from verifiability — verify_report is free for anyone. Signing uses
-// ed25519 (asymmetric) so a report is verifiable with the published public key.
-// Pure given key material; the tool layer sources keys from env.
+// Integrity attestation: sign a de-identified study manifest and verify it.
+// A valid signature only proves that this manifest existed at issued_at and has
+// not been altered since (blind oracle — claims and pre-issuance history are not
+// validated). verify_report is free for anyone. Signing uses ed25519; verification
+// uses RF_SIGNING_PUBLIC_KEY. key_id is stored on the report for display only —
+// it is not part of the signed body and does not select keys. Pure given key
+// material; the tool layer sources keys from env.
 
 import {
   createHash,

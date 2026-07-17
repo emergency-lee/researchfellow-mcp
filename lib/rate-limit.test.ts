@@ -26,4 +26,17 @@ describe("checkRateLimit", () => {
     expect(checkRateLimit("a", { max: 1, windowMs: 60_000 })).toBe(true);
     expect(checkRateLimit("b", { max: 1, windowMs: 60_000 })).toBe(true);
   });
+
+  // Mirrors app/api/[transport]/route.ts: mcp:${ip} @ 60/min.
+  // Route returns { error: "rate_limited" } 429 when this returns false.
+  it("blocks the MCP tool-path key after max hits in the window", () => {
+    const key = "mcp:203.0.113.10";
+    const opts = { max: 60, windowMs: 60_000 };
+    for (let i = 0; i < 60; i++) {
+      expect(checkRateLimit(key, opts)).toBe(true);
+    }
+    expect(checkRateLimit(key, opts)).toBe(false);
+    // Other IPs remain independent (per-IP isolation).
+    expect(checkRateLimit("mcp:198.51.100.1", opts)).toBe(true);
+  });
 });

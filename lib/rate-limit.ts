@@ -1,7 +1,8 @@
 // In-memory fixed-window rate limiter — SECOND line of defence only. Serverless
-// instances each hold their own window, so the effective global limit is
-// (limit x instance count); the FIRST line is the Vercel WAF per-IP rule
-// (docs/roadmap_2026-07-16.md v0.2 item 4, extended to /api/token|events).
+// instances each hold their own window (Map is process-local), so the effective
+// global limit is (limit × instance count). This is intentional minimum defence;
+// the FIRST line is Vercel WAF / edge per-IP rules (ops, outside this repo).
+// Used by: /api/token, /api/events, and MCP tool path /api/[transport].
 
 interface Window {
   count: number;
