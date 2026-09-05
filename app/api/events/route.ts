@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 import { TelemetryNotConfiguredError } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { EVENTS_JSON_MAX_BYTES, readBoundedJson } from "@/lib/request-body";
 import { eventBatchSchema } from "@/lib/telemetry-schema";
 import { insertEvents, UnknownTokenError } from "@/lib/telemetry-store";
 
@@ -17,13 +18,9 @@ export async function POST(req: Request) {
   if (!checkRateLimit(`events:${clientIp(req)}`, { max: 60, windowMs: 60_000 })) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
-  }
-  const parsed = eventBatchSchema.safeParse(body);
+  const body = await readBoundedJson(req, EVENTS_JSON_MAX_BYTES);
+  if (!body.ok) return body.response;
+  const parsed = eventBatchSchema.safeParse(body.value);
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }

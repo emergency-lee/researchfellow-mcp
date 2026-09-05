@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 import { TelemetryNotConfiguredError } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { readBoundedJson, TOKEN_JSON_MAX_BYTES } from "@/lib/request-body";
 import { tokenRequestSchema, tokenRevokeSchema } from "@/lib/telemetry-schema";
 import { issueToken, revokeToken } from "@/lib/telemetry-store";
 
@@ -25,13 +26,9 @@ export async function POST(req: Request) {
   if (!checkRateLimit(`token:${clientIp(req)}`, { max: 5, windowMs: 60_000 })) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
-  }
-  const parsed = tokenRequestSchema.safeParse(body);
+  const body = await readBoundedJson(req, TOKEN_JSON_MAX_BYTES);
+  if (!body.ok) return body.response;
+  const parsed = tokenRequestSchema.safeParse(body.value);
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
@@ -47,13 +44,9 @@ export async function DELETE(req: Request) {
   if (!checkRateLimit(`revoke:${clientIp(req)}`, { max: 5, windowMs: 60_000 })) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
-  }
-  const parsed = tokenRevokeSchema.safeParse(body);
+  const body = await readBoundedJson(req, TOKEN_JSON_MAX_BYTES);
+  if (!body.ok) return body.response;
+  const parsed = tokenRevokeSchema.safeParse(body.value);
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }

@@ -4,6 +4,7 @@
 const EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils";
 const FETCH_TIMEOUT_MS = 8000;
 const RETMAX = 40;
+const PMID_RE = /^\d{1,16}$/;
 
 export interface PubmedArticle {
   pmid: string;
@@ -23,6 +24,60 @@ function apiKeyParam(): string {
   return k ? `&api_key=${encodeURIComponent(k)}` : "";
 }
 
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+function hasErrorField(v: Record<string, unknown>): boolean {
+  return v.error != null || v.ERROR != null;
+}
+
+function parsePmid(v: unknown): string | null {
+  return typeof v === "string" && PMID_RE.test(v) ? v : null;
+}
+
+/**
+ * NCBI esearch JSON. Genuine empty idlist is success; any error/malformed
+ * shape (including `{error:"API rate limit exceeded"}`) is failure.
+ */
+function parseIdList(payload: unknown): string[] | null {
+  if (!isPlainObject(payload) || hasErrorField(payload)) return null;
+  const result = payload.esearchresult;
+  if (!isPlainObject(result) || hasErrorField(result)) return null;
+  const idlist = result.idlist;
+  if (!Array.isArray(idlist)) return null;
+  const ids: string[] = [];
+  for (const item of idlist) {
+    const pmid = parsePmid(item);
+    if (pmid === null) return null;
+    ids.push(pmid);
+  }
+  return ids.slice(0, RETMAX);
+}
+
+function parseSummary(payload: unknown, ids: string[]): PubmedArticle[] | null {
+  if (!isPlainObject(payload) || hasErrorField(payload)) return null;
+  const result = payload.result;
+  if (!isPlainObject(result) || hasErrorField(result)) return null;
+  const articles: PubmedArticle[] = [];
+  for (const id of ids) {
+    const rec = result[id];
+    if (!isPlainObject(rec) || hasErrorField(rec)) return null;
+    if (rec.uid != null && rec.uid !== id) return null;
+    const title = toStr(rec.title);
+    if (title === null) return null;
+    articles.push({
+      pmid: id,
+      title,
+      year: parseYear(rec.pubdate),
+      journal: toStr(rec.fulljournalname) ?? toStr(rec.source),
+    });
+  }
+  return articles;
+}
+
+// No retry: esearch+esummary is already two calls; fallback can double that.
+// FETCH_TIMEOUT_MS=8000 and NFR-1 p95<30s. Immediate 429 retry would worsen NCBI limits.
 async function fetchJson(url: string): Promise<unknown> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
@@ -114,43 +169,26 @@ function parseYear(pubdate: unknown): number | null {
   return m ? Number(m[1]) : null;
 }
 
-/** esearch -> esummary. Returns ok:false on any upstream/timeout failure. */
+/** esearch -> esummary. Returns ok:false on any upstream/timeout/malformed failure. */
 export async function searchPubmed(term: string): Promise<PubmedResult> {
-  const empty: PubmedResult = { ok: false, queryUsed: term, articles: [] };
+  const fail: PubmedResult = { ok: false, queryUsed: term, articles: [] };
   try {
     const esearchUrl =
       `${EUTILS}/esearch.fcgi?db=pubmed&retmode=json&sort=relevance` +
       `&retmax=${RETMAX}&term=${encodeURIComponent(term)}${apiKeyParam()}`;
-    const search = (await fetchJson(esearchUrl)) as {
-      esearchresult?: { idlist?: string[] };
-    };
-    const ids = search?.esearchresult?.idlist ?? [];
-    if (!ids.length) return { ok: true, queryUsed: term, articles: [] };
+    const ids = parseIdList(await fetchJson(esearchUrl));
+    if (ids === null) return fail;
+    if (ids.length === 0) return { ok: true, queryUsed: term, articles: [] };
 
+    const idParam = ids.map((id) => encodeURIComponent(id)).join(",");
     const esummaryUrl =
       `${EUTILS}/esummary.fcgi?db=pubmed&retmode=json` +
-      `&id=${ids.join(",")}${apiKeyParam()}`;
-    const summary = (await fetchJson(esummaryUrl)) as {
-      result?: Record<string, unknown>;
-    };
-    const result = summary?.result ?? {};
-
-    const articles: PubmedArticle[] = [];
-    for (const id of ids) {
-      const rec = result[id] as
-        | { title?: unknown; pubdate?: unknown; fulljournalname?: unknown; source?: unknown }
-        | undefined;
-      if (!rec) continue;
-      articles.push({
-        pmid: id,
-        title: toStr(rec.title) ?? "",
-        year: parseYear(rec.pubdate),
-        journal: toStr(rec.fulljournalname) ?? toStr(rec.source),
-      });
-    }
+      `&id=${idParam}${apiKeyParam()}`;
+    const articles = parseSummary(await fetchJson(esummaryUrl), ids);
+    if (articles === null) return fail;
     return { ok: true, queryUsed: term, articles };
   } catch {
-    return empty;
+    return fail;
   }
 }
 
