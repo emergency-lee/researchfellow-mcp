@@ -1,6 +1,6 @@
 {
   "name": "researchfellow-mcp",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "ResearchFellow MCP \u2014 remote enrichment tools (Brain/Integrity) + telemetry ingestion.",
   "scripts": {
