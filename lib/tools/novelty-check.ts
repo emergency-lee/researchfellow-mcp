@@ -36,9 +36,7 @@ export function registerNoveltyCheck(server: McpServer) {
     {
       title: "Novelty Check",
       description:
-        "Cross-check a study idea (PICO + keywords) against live PubMed for similar prior work. " +
-        "Returns a ranked similar-study list and positioning hints. " +
-        "Accepts de-identified structured input only (no tabular/PHI data).",
+        "Scans PubMed only (max 40 records) for prior work using title-token similarity. Not a systematic review and not proof of novelty; does not evaluate hypothesis direction. Accepts de-identified structured input only (no tabular/PHI data).",
       inputSchema,
     },
     async (args, extra: ToolExtra) => {

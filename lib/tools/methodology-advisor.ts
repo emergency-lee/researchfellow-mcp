@@ -42,7 +42,8 @@ export function registerMethodologyAdvisor(server: McpServer) {
         "outcome type + features) and surface PubMed precedent. Returns the method, " +
         "confounding strategy, assumptions, pitfalls, sensitivity menu, reporting-item crosswalk and " +
         "similar-study examples. De-identified structured " +
-        "input only (no tabular/PHI data).",
+        "input only (no tabular/PHI data)." +
+        " Rule-based recommendations plus PubMed precedents; not a statistical consultation.",
       inputSchema,
     },
     async (args, extra: ToolExtra) => {

@@ -22,7 +22,8 @@ export function registerJournalFit(server: McpServer) {
         "Score a manuscript (title + abstract + keywords + design) against a curated set of target " +
         "journals for scope fit, and diagnose abstract format (structured labels, word limit). " +
         "Returns the ranked candidates + format diagnostics for the best fit. " +
-        "De-identified manuscript metadata only (no PHI).",
+        "De-identified manuscript metadata only (no PHI)." +
+        " Uses a static list of 10 representative journals with keyword/design matching; not comprehensive and not live-updated.",
       inputSchema,
     },
     async (args, extra: ToolExtra) => {
