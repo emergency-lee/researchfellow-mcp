@@ -3,34 +3,53 @@ import { z } from "zod";
 import { KB_VERSION } from "@/lib/version";
 import { scanForPhi, phiRejection } from "@/lib/phi-guard";
 import { searchPubmedWithFallback, type PubmedArticle } from "@/lib/pubmed";
-import { recommendMethodology, RULES_VERSION } from "@/lib/methodology";
+import {
+  DesignSchema,
+  OutcomeTypeSchema,
+  methodFeaturesSchema,
+  recommendMethodology,
+  RULES_VERSION,
+} from "@/lib/methodology";
 import { entitlementOf, jsonResult, logTool, type ToolExtra } from "@/lib/tools/shared";
 
-// PH-1: structured, de-identified input only — no free-form tabular/PHI fields.
-const inputSchema = {
-  pico: z.object({
+/** Zod messages must not echo received values (patient rows, raw tables, identifiers). */
+const noEchoErrorMap: z.ZodErrorMap = () => ({ message: "invalid_input" });
+
+const picoSchema = z
+  .object({
     population: z.string().min(1).max(200),
     exposure: z.string().min(1).max(200),
     comparator: z.string().max(200).optional(),
     outcome: z.string().min(1).max(200),
     timeframe: z.string().max(120).optional(),
-  }),
-  design: z.enum(["cohort", "case_control", "cross_sectional", "prediction"]),
-  outcome_type: z.enum(["binary", "time_to_event", "count", "continuous"]).default("binary"),
-  features: z
-    .object({
-      confounders_present: z.boolean().optional(),
-      many_confounders_few_events: z.boolean().optional(),
-      competing_risks: z.boolean().optional(),
-      time_varying_exposure: z.boolean().optional(),
-      rare_outcome: z.boolean().optional(),
-      missing_data: z.boolean().optional(),
-      routinely_collected: z.boolean().optional(),
-      matched: z.boolean().optional(),
-    })
-    .optional(),
-  keywords: z.array(z.string().max(80)).max(20).optional(),
-};
+  })
+  .strict();
+
+export const methodologyAdvisorInputSchema = z
+  .object(
+    {
+      pico: picoSchema,
+      design: DesignSchema,
+      outcome_type: OutcomeTypeSchema.default("binary"),
+      features: methodFeaturesSchema.optional(),
+      keywords: z.array(z.string().max(80)).max(20).optional(),
+    },
+    { errorMap: noEchoErrorMap },
+  )
+  .strict();
+
+export type MethodologyAdvisorInput = z.infer<typeof methodologyAdvisorInputSchema>;
+
+export const INVALID_INPUT = { error: "invalid_input" as const };
+
+/** Parse tool input. Failures return a fixed error object and never echo the payload. */
+export function parseMethodologyAdvisorInput(
+  input: unknown,
+): { ok: true; value: MethodologyAdvisorInput } | { ok: false; error: "invalid_input" } {
+  const parsed = methodologyAdvisorInputSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+  return { ok: true, value: parsed.data };
+}
 
 export function registerMethodologyAdvisor(server: McpServer) {
   server.registerTool(
@@ -44,20 +63,26 @@ export function registerMethodologyAdvisor(server: McpServer) {
         "similar-study examples. De-identified structured " +
         "input only (no tabular/PHI data)." +
         " Rule-based recommendations plus PubMed precedents; not a statistical consultation.",
-      inputSchema,
+      inputSchema: methodologyAdvisorInputSchema,
     },
     async (args, extra: ToolExtra) => {
       const startedAt = Date.now();
       const ent = entitlementOf(extra);
 
+      const parsed = parseMethodologyAdvisorInput(args);
+      if (!parsed.ok) {
+        logTool("methodology_advisor", `${ent.mode}:invalid_input`, startedAt);
+        return jsonResult(INVALID_INPUT);
+      }
+
       // PH-2: runtime PHI defence. Reject WITHOUT logging the payload.
-      const phi = scanForPhi(args);
+      const phi = scanForPhi(parsed.value);
       if (phi) {
         logTool("methodology_advisor", `${ent.mode}:phi_rejected`, startedAt);
         return jsonResult(phiRejection(phi));
       }
 
-      const { pico, design, outcome_type, features, keywords } = args;
+      const { pico, design, outcome_type, features, keywords } = parsed.value;
       const rec = recommendMethodology({ design, outcome_type, features });
 
       // PubMed precedent (best-effort — never a hard error).
