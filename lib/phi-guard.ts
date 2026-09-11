@@ -1,5 +1,8 @@
 // Runtime PHI defence (PH-2). Ported from the plugin's phi_screener.py pattern set.
 //
+// Defense-in-depth only — not complete deidentification. Unlabelled names,
+// unlabelled identifiers, and formats outside these rules are not claimed.
+//
 // ABSOLUTE RULE (PH-3): a matched value — or any fragment of it — is NEVER logged
 // or echoed back. Detection returns only the rule id that fired. Callers must not
 // log the scanned payload on any code path.
@@ -10,6 +13,10 @@ const RRN_RE = /(?<!\d)(\d{6})[- ]?([1-4]\d{6})(?!\d)/g;
 const PHONE_RE = /(?<!\d)01[016789][- ]?\d{3,4}[- ]?\d{4}(?!\d)/;
 // Email.
 const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
+// Labelled medical-record / patient ID (MRN: 12345678). Requires an explicit
+// label plus a value; digit-only tokens, PMID, N=, HR, and doses must not fire.
+const LABELLED_RECORD_ID_RE =
+  /(?:^|[^A-Za-z0-9_])(?:medical[\s._-]*record[\s._-]*(?:number|no\.?)|patient[\s._-]*id|MRN|환자번호|등록번호|차트번호)(?![A-Za-z])(?:[\s]*[=:#][\s]*|[\s]+)[A-Za-z0-9]*\d[A-Za-z0-9._-]*/i;
 
 /** Validate the 13-digit RRN check digit (reduces false positives). */
 function rrnChecksumValid(digits: string): boolean {
@@ -30,7 +37,12 @@ function hitRrn(text: string): boolean {
   return false;
 }
 
-export type PhiRule = "krn_rrn" | "phone_kr" | "email";
+export type PhiRule = "krn_rrn" | "phone_kr" | "email" | "labelled_record_id";
+
+function hitLabelledRecordId(text: string): boolean {
+  LABELLED_RECORD_ID_RE.lastIndex = 0;
+  return LABELLED_RECORD_ID_RE.test(text);
+}
 
 /**
  * Scan an arbitrary tool input for PHI patterns. The value is JSON.stringify'd
@@ -50,6 +62,7 @@ export function scanForPhi(input: unknown): PhiRule | null {
   if (hitRrn(blob)) return "krn_rrn";
   if (PHONE_RE.test(blob)) return "phone_kr";
   if (EMAIL_RE.test(blob)) return "email";
+  if (hitLabelledRecordId(blob)) return "labelled_record_id";
   return null;
 }
 
@@ -62,6 +75,7 @@ export function phiRejection(rule: PhiRule) {
     guidance:
       "입력에서 개인식별정보(PHI) 패턴이 감지되어 요청을 처리하지 않았습니다. " +
       "요청 본문은 어디에도 저장되지 않았습니다. 로컬 phi_screener로 스크리닝한 뒤 " +
-      "비식별 파생물(PICO·키워드·집계값)만 보내세요.",
+      "비식별 파생물(PICO·키워드·집계값)만 보내세요. " +
+      "서버 검사는 방어선이며 완전한 비식별이 아니고, 모든 이름·식별자를 인식하지는 않습니다.",
   };
 }

@@ -257,6 +257,21 @@ describe("methodology_advisor input schema", () => {
     expect(mockedSearch).not.toHaveBeenCalled();
   });
 
+  it("blocks labelled MRN before PubMed and does not echo the identifier", async () => {
+    mockedSearch.mockResolvedValue({ ok: true, queryUsed: "q", articles: [], relaxed: false });
+    const { handler } = captureTool();
+    const value = "12345678";
+    const result = await handler({
+      pico: { population: `MRN: ${value}`, exposure: "vitamin C", outcome: "28-day mortality" },
+      design: "cohort",
+    });
+    const payload = parsePayload(result);
+    expect(payload.error).toBe("phi_detected");
+    expect(payload.rule).toBe("labelled_record_id");
+    expect(JSON.stringify(payload)).not.toContain(value);
+    expect(mockedSearch).not.toHaveBeenCalled();
+  });
+
   it("registered inputSchema is a strict object schema", () => {
     const { config } = captureTool();
     const schema = config.inputSchema as z.ZodTypeAny;

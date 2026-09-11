@@ -31,6 +31,39 @@ describe("scanForPhi", () => {
     // arbitrary digits unlikely to satisfy the RRN check digit
     expect(scanForPhi("1111111111111")).toBeNull();
   });
+
+  it("detects labelled medical-record / patient IDs", () => {
+    const labelled = [
+      "MRN: 12345678",
+      "mrn=12345678",
+      "medical record number: 12345678",
+      "patient_id: 12345678",
+      "patient ID = 12345678",
+      "환자번호: 12345678",
+      "등록번호: 12345678",
+      "차트번호: 12345678",
+    ];
+    for (const population of labelled) {
+      expect(scanForPhi({ pico: { population } })).toBe("labelled_record_id");
+    }
+  });
+
+  it("does not treat journal identifiers or numeric clinical facts as labelled record IDs", () => {
+    const negatives = [
+      "PMID: 12345678",
+      "pmid 12345678",
+      "cohort N=1200",
+      "N: 500",
+      "HR1.23",
+      "HR: 1.23",
+      "dose: 10 mg",
+      "metformin 500mg",
+      "12345678",
+    ];
+    for (const population of negatives) {
+      expect(scanForPhi({ pico: { population, exposure: "vitamin C", outcome: "death" } })).toBeNull();
+    }
+  });
 });
 
 describe("phiRejection (PH-3 no-leak)", () => {
@@ -42,5 +75,17 @@ describe("phiRejection (PH-3 no-leak)", () => {
     expect(payload.error).toBe("phi_detected");
     expect(payload.rule).toBe("krn_rrn");
     expect(blob).not.toContain(rrn); // the value must never appear in the response
+  });
+
+  it("labelled-record rejection carries the rule id and never the identifier", () => {
+    const value = "12345678";
+    const rule = scanForPhi({ pico: { population: `MRN: ${value}` } });
+    expect(rule).toBe("labelled_record_id");
+    const payload = phiRejection(rule!);
+    const blob = JSON.stringify(payload);
+    expect(payload.error).toBe("phi_detected");
+    expect(payload.rule).toBe("labelled_record_id");
+    expect(blob).not.toContain(value);
+    expect(blob).not.toContain("MRN: ");
   });
 });
