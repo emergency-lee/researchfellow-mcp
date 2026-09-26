@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "ResearchFellow MCP",
-  description: "ResearchFellow paid remote MCP tier — endpoint at /api/mcp",
+  description: "ResearchFellow remote MCP server — endpoint at /api/mcp",
 };
 
 export default function RootLayout({
