@@ -9,3 +9,7 @@ next-env.d.ts
 .DS_Store
 .vercel
 .env*.local
+
+# Local AI agent configuration and state
+.claude/
+.codex/
